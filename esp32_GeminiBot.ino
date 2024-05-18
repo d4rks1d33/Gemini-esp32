@@ -6,6 +6,28 @@ const char* apiKey = "";
 
 String endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + String(apiKey);
 
+void connectToWiFi(const char* ssid, const char* password) {
+  WiFi.begin(ssid, password);
+
+  int retries = 0;
+  const int maxRetries = 20;
+  while (WiFi.status() != WL_CONNECTED && retries < maxRetries) {
+    delay(500);
+    Serial.print(".");
+    retries++;
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("");
+    Serial.println("WiFi connected");
+    Serial.println("IP address: ");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.println("");
+    Serial.println("Error: Could not connect to WiFi network.");
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   delay(10);
@@ -22,46 +44,41 @@ void setup() {
     Serial.println(")");
   }
 
-  Serial.println("Select a WiFi network (Enter number): ");
-  while (!Serial.available());
-  int networkIndex = Serial.parseInt() - 1;
-  while (networkIndex < 0 || networkIndex >= n) {
-    Serial.println("Invalid selection. Try again: ");
+  while (true) {
+    Serial.println("Select a WiFi network and enter the password (if required) in the following format:");
+    Serial.println("<network_number>//<password>");
+    Serial.println("Example: 1//mypassword");
+    
     while (!Serial.available());
-    networkIndex = Serial.parseInt() - 1;
-  }
+    String input = Serial.readStringUntil('\n');
+    input.trim();
+    
+    int separatorIndex = input.indexOf("//");
+    if (separatorIndex == -1) {
+      Serial.println("Invalid format. Try again.");
+      continue;
+    }
+    
+    int networkIndex = input.substring(0, separatorIndex).toInt() - 1;
+    String password = input.substring(separatorIndex + 2);
+    password.trim();
 
-  String ssid = WiFi.SSID(networkIndex);
-  Serial.print("Selected SSID: ");
-  Serial.println(ssid);
-  
-  Serial.println("Enter password: ");
-  while (!Serial.available());
-  String password = Serial.readStringUntil('\n');
-  password.trim();
+    if (networkIndex < 0 || networkIndex >= n) {
+      Serial.println("Invalid selection. Try again.");
+      continue;
+    }
 
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
+    String ssid = WiFi.SSID(networkIndex);
+    Serial.print("Connecting to ");
+    Serial.println(ssid);
 
-  WiFi.begin(ssid.c_str(), password.c_str());
+    connectToWiFi(ssid.c_str(), password.c_str());
 
-  int retries = 0;
-  const int maxRetries = 20; 
-  while (WiFi.status() != WL_CONNECTED && retries < maxRetries) {
-    delay(500);
-    Serial.print(".");
-    retries++;
-  }
-
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("");
-    Serial.println("WiFi connected");
-    Serial.println("IP address: ");
-    Serial.println(WiFi.localIP());
-  } else {
-    Serial.println("");
-    Serial.println("Error: Could not connect to WiFi network.");
-    ESP.restart();
+    if (WiFi.status() == WL_CONNECTED) {
+      break;
+    } else {
+      Serial.println("Failed to connect. Please try again.");
+    }
   }
 }
 
