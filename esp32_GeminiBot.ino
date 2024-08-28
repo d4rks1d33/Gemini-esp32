@@ -5,16 +5,22 @@
 const char* apiKey = "";
 
 String endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + String(apiKey);
+String userName;
 
 void connectToWiFi(const char* ssid, const char* password) {
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+  delay(1000);
+
   WiFi.begin(ssid, password);
 
   int retries = 0;
-  const int maxRetries = 20;
+  const int maxRetries = 30;
   while (WiFi.status() != WL_CONNECTED && retries < maxRetries) {
-    delay(500);
+    delay(1000);
     Serial.print(".");
     retries++;
+    delay(500);
   }
 
   if (WiFi.status() == WL_CONNECTED) {
@@ -31,7 +37,16 @@ void connectToWiFi(const char* ssid, const char* password) {
 void setup() {
   Serial.begin(115200);
   delay(10);
+
   
+  Serial.println("Welcome to the Gemini ESP32!");
+  Serial.println("Please enter your name:");
+  while (!Serial.available());
+  userName = Serial.readStringUntil('\n');
+  userName.trim();
+
+  Serial.println("Hello, " + userName + "!");
+
   Serial.println("Scanning WiFi networks...");
   int n = WiFi.scanNetworks();
   Serial.println("Available WiFi networks:");
@@ -45,30 +60,31 @@ void setup() {
   }
 
   while (true) {
-    Serial.println("Select a WiFi network and enter the password (if required) in the following format:");
-    Serial.println("<network_number>//<password>");
-    Serial.println("Example: 1//mypassword");
-    
+    Serial.println("Select a WiFi network by entering the corresponding number followed by the password separated by '//':");
+
     while (!Serial.available());
     String input = Serial.readStringUntil('\n');
     input.trim();
-    
+
     int separatorIndex = input.indexOf("//");
     if (separatorIndex == -1) {
-      Serial.println("Invalid format. Try again.");
+      Serial.println("Invalid format. Use 'number//password'. Try again.");
       continue;
     }
-    
+
     int networkIndex = input.substring(0, separatorIndex).toInt() - 1;
+    if (networkIndex < 0 || networkIndex >= n) {
+      Serial.println("Invalid network number. Try again.");
+      continue;
+    }
+
     String password = input.substring(separatorIndex + 2);
     password.trim();
 
-    if (networkIndex < 0 || networkIndex >= n) {
-      Serial.println("Invalid selection. Try again.");
-      continue;
-    }
-
     String ssid = WiFi.SSID(networkIndex);
+
+    Serial.print("You selected: ");
+    Serial.println(ssid);
     Serial.print("Connecting to ");
     Serial.println(ssid);
 
@@ -94,7 +110,7 @@ void loop() {
         http.setTimeout(15000);
         http.begin(endpoint);
         http.addHeader("Content-Type", "application/json");
-        
+
         String payload = "{\"contents\":[{\"parts\":[{\"text\":\"" + userQuery + "\"}]}]}";
         int httpResponseCode = http.POST(payload);
 
@@ -106,7 +122,7 @@ void loop() {
 
           if (!error) {
             const char* text = doc["candidates"][0]["content"]["parts"][0]["text"];
-            Serial.print("You: \"");
+            Serial.print(userName + ": \"");
             Serial.print(userQuery);
             Serial.println("\"");
             Serial.print("Gemini: \"");
