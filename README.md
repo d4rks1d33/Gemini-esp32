@@ -6,7 +6,7 @@ You need to place here your Gemini Api Key (Is free to get using this link: http
 
 ---->  const char* apiKey = "Your Api Key Here";  <----
 
-Flipper Zero app (Gemini IA.js)
+Flipper Zero app (Gemini IA.js):
 
 ![image](https://github.com/user-attachments/assets/a2919b84-8a03-4033-bd41-2f222d83a6cd)
 
