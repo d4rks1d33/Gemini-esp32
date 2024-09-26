@@ -18,3 +18,5 @@ To do:
 -- Store the Api Key in a file inside of the flipper zero instead of flashing it inside of the esp32
 
 -- Remember Wi-Fi to avoid entering the password every time
+
+-- Make the serial output cleaner to see the interaction with the IA better
