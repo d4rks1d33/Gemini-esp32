@@ -8,6 +8,9 @@ You need to place here your Gemini Api Key (Is free to get using this link: http
 
 Flipper Zero app (Gemini IA.js)
 
+![image](https://github.com/user-attachments/assets/a2919b84-8a03-4033-bd41-2f222d83a6cd)
+
+![image](https://github.com/user-attachments/assets/0fb194e6-558d-45fd-a483-d25604e5420a)
 
 
 To do:
