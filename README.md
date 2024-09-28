@@ -6,7 +6,7 @@ You need to place here your Gemini Api Key (Is free to get using this link: http
 
 ---->  const char* apiKey = "Your Api Key Here";  <----
 
-~~ Flipper Zero app (Gemini IA.js): ~~ Move to Gemini-Flipper repo
+~~Flipper Zero app (Gemini IA.js)~~ Moved to Gemini-Flipper repo
 
 
 To do:
