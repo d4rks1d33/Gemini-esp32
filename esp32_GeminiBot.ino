@@ -2,9 +2,11 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
-const char* apiKey = "";
+const int redLedPin = 2;
+const int blueLedPin = 5;
 
-String endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + String(apiKey);
+String apiKey;
+String endpoint;
 String userName;
 
 void connectToWiFi(const char* ssid, const char* password) {
@@ -34,16 +36,58 @@ void connectToWiFi(const char* ssid, const char* password) {
   }
 }
 
+void loadAPIKey() {
+  Serial.println("Please send the API key file (api.txt) over Serial:");
+  
+  while (!Serial.available()); 
+  apiKey = Serial.readStringUntil('\n');
+  apiKey.trim(); 
+  endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + apiKey;
+  Serial.println("API key loaded successfully.");
+}
+
+void saveAP(const char* ssid, const char* password) {
+  Serial.println("Saving Access Point information...");
+  String apData = String(ssid) + "//" + String(password) + "\n";
+  Serial.print("Writing to SavedAPs.txt: ");
+  Serial.println(apData);
+}
+
+bool loadSavedAP(String &ssid, String &password) {
+  Serial.println("Loading saved Access Points from SavedAPs.txt...");
+  
+  while (!Serial.available());
+  String apData = Serial.readStringUntil('\n');
+  
+  int separatorIndex = apData.indexOf("//");
+  if (separatorIndex == -1) return false;
+
+  ssid = apData.substring(0, separatorIndex);
+  password = apData.substring(separatorIndex + 2);
+  
+  ssid.trim();
+  password.trim();
+  
+  return true;
+}
+
 void setup() {
   Serial.begin(115200);
   delay(10);
 
-  
+  pinMode(redLedPin, OUTPUT);
+  pinMode(blueLedPin, OUTPUT);
+
+  digitalWrite(redLedPin, HIGH);
+  digitalWrite(blueLedPin, LOW);
+
+  loadAPIKey();
+
   Serial.println("Welcome to the Gemini ESP32!");
   Serial.println("Please enter your name:");
   while (!Serial.available());
   userName = Serial.readStringUntil('\n');
-  userName.trim();
+  userName.trim(); 
 
   Serial.println("Hello, " + userName + "!");
 
@@ -60,40 +104,61 @@ void setup() {
   }
 
   while (true) {
-    Serial.println("Select a WiFi network by entering the corresponding number followed by the password separated by '//':");
-
+    Serial.println("Do you want to use a saved Access Point? (yes/no):");
     while (!Serial.available());
-    String input = Serial.readStringUntil('\n');
-    input.trim();
+    String choice = Serial.readStringUntil('\n');
+    choice.trim();
 
-    int separatorIndex = input.indexOf("//");
-    if (separatorIndex == -1) {
-      Serial.println("Invalid format. Use 'number//password'. Try again.");
-      continue;
-    }
+    if (choice.equalsIgnoreCase("yes")) {
+      String ssid, password;
+      if (loadSavedAP(ssid, password)) {
+        connectToWiFi(ssid.c_str(), password.c_str());
+        if (WiFi.status() == WL_CONNECTED) {
+          break;
+        } else {
+          Serial.println("Failed to connect to saved AP. Please try again.");
+        }
+      } else {
+        Serial.println("No valid saved AP found.");
+      }
+    } else if (choice.equalsIgnoreCase("no")) {
+      Serial.println("Select a WiFi network by entering the corresponding number or SSID followed by the password separated by '//':");
 
-    int networkIndex = input.substring(0, separatorIndex).toInt() - 1;
-    if (networkIndex < 0 || networkIndex >= n) {
-      Serial.println("Invalid network number. Try again.");
-      continue;
-    }
+      while (!Serial.available());
+      String input = Serial.readStringUntil('\n');
+      input.trim();
 
-    String password = input.substring(separatorIndex + 2);
-    password.trim();
+      int separatorIndex = input.indexOf("//");
+      if (separatorIndex == -1) {
+        Serial.println("Invalid format. Use 'number//password' or 'SSID//password'. Try again.");
+        continue;
+      }
 
-    String ssid = WiFi.SSID(networkIndex);
+      String password = input.substring(separatorIndex + 2);
+      password.trim();  
 
-    Serial.print("You selected: ");
-    Serial.println(ssid);
-    Serial.print("Connecting to ");
-    Serial.println(ssid);
+      String ssidInput = input.substring(0, separatorIndex);
 
-    connectToWiFi(ssid.c_str(), password.c_str());
+      int networkIndex = ssidInput.toInt() - 1;
+      if (networkIndex >= 0 && networkIndex < n) {
+        String ssid = WiFi.SSID(networkIndex);
+        Serial.print("You selected: ");
+        Serial.println(ssid);
+        Serial.print("Connecting to ");
+        Serial.println(ssid);
+        connectToWiFi(ssid.c_str(), password.c_str());
+      } else {
+        Serial.print("Connecting to SSID: ");
+        Serial.println(ssidInput);
+        connectToWiFi(ssidInput.c_str(), password.c_str());
+      }
 
-    if (WiFi.status() == WL_CONNECTED) {
-      break;
-    } else {
-      Serial.println("Failed to connect. Please try again.");
+      if (WiFi.status() == WL_CONNECTED) {
+        saveAP(ssidInput.c_str(), password.c_str());
+        break;
+      } else {
+        Serial.println("Failed to connect. Please try again.");
+      }
     }
   }
 }
@@ -112,6 +177,9 @@ void loop() {
         http.addHeader("Content-Type", "application/json");
 
         String payload = "{\"contents\":[{\"parts\":[{\"text\":\"" + userQuery + "\"}]}]}";
+
+        digitalWrite(blueLedPin, HIGH);
+
         int httpResponseCode = http.POST(payload);
 
         if (httpResponseCode > 0) {
@@ -122,12 +190,8 @@ void loop() {
 
           if (!error) {
             const char* text = doc["candidates"][0]["content"]["parts"][0]["text"];
-            Serial.print(userName + ": \"");
-            Serial.print(userQuery);
-            Serial.println("\"");
-            Serial.print("Gemini: \"");
-            Serial.print(text);
-            Serial.println("\"");
+            Serial.println(userName + ": \"" + userQuery + "\""); 
+            Serial.println("Gemini: \"" + String(text) + "\"");
           } else {
             Serial.print("Error parsing JSON: ");
             Serial.println(error.c_str());
@@ -137,24 +201,9 @@ void loop() {
           Serial.println(httpResponseCode);
           Serial.print("HTTP error: ");
           Serial.println(http.errorToString(httpResponseCode).c_str());
-
-          if (httpResponseCode == HTTP_CODE_UNAUTHORIZED) {
-            Serial.println("Error: Unauthorized. Check your API key.");
-          } else if (httpResponseCode == HTTP_CODE_FORBIDDEN) {
-            Serial.println("Error: Forbidden. You do not have permission to access this resource.");
-          } else if (httpResponseCode == HTTP_CODE_NOT_FOUND) {
-            Serial.println("Error: Resource not found.");
-          } else if (httpResponseCode == HTTP_CODE_REQUEST_TIMEOUT) {
-            Serial.println("Error: Request timed out.");
-          } else if (httpResponseCode == HTTP_CODE_INTERNAL_SERVER_ERROR) {
-            Serial.println("Error: Internal server error.");
-          } else {
-            Serial.println("Unknown error.");
-          }
-
-          delay(2000);
-          Serial.println("Retrying...");
         }
+
+        digitalWrite(blueLedPin, LOW);
 
         http.end();
       } else {
