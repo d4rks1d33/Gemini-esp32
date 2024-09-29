@@ -39,9 +39,9 @@ void connectToWiFi(const char* ssid, const char* password) {
 void loadAPIKey() {
   Serial.println("Please send the API key file (api.txt) over Serial:");
   
-  while (!Serial.available()); 
+  while (!Serial.available());
   apiKey = Serial.readStringUntil('\n');
-  apiKey.trim(); 
+  apiKey.trim();
   endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + apiKey;
   Serial.println("API key loaded successfully.");
 }
@@ -87,7 +87,7 @@ void setup() {
   Serial.println("Please enter your name:");
   while (!Serial.available());
   userName = Serial.readStringUntil('\n');
-  userName.trim(); 
+  userName.trim();
 
   Serial.println("Hello, " + userName + "!");
 
@@ -110,17 +110,25 @@ void setup() {
     choice.trim();
 
     if (choice.equalsIgnoreCase("yes")) {
-      String ssid, password;
-      if (loadSavedAP(ssid, password)) {
-        connectToWiFi(ssid.c_str(), password.c_str());
-        if (WiFi.status() == WL_CONNECTED) {
-          break;
-        } else {
-          Serial.println("Failed to connect to saved AP. Please try again.");
-        }
-      } else {
-        Serial.println("No valid saved AP found.");
+      Serial.println("Please enter the SSID and password in the format 'SSID//password':");
+      
+      while (!Serial.available());
+      String input = Serial.readStringUntil('\n');
+      input.trim();
+
+      int separatorIndex = input.indexOf("//");
+      if (separatorIndex == -1) {
+        Serial.println("Invalid format. Use 'SSID//password'. Try again.");
+        continue;
       }
+
+      String ssid = input.substring(0, separatorIndex);
+      String password = input.substring(separatorIndex + 2);
+      ssid.trim(); 
+      password.trim(); 
+
+      connectToWiFi(ssid.c_str(), password.c_str());
+      break; 
     } else if (choice.equalsIgnoreCase("no")) {
       Serial.println("Select a WiFi network by entering the corresponding number or SSID followed by the password separated by '//':");
 
@@ -135,7 +143,7 @@ void setup() {
       }
 
       String password = input.substring(separatorIndex + 2);
-      password.trim();  
+      password.trim();
 
       String ssidInput = input.substring(0, separatorIndex);
 
