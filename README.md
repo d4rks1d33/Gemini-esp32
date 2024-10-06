@@ -8,4 +8,4 @@ You need to place here your Gemini Api Key (Is free to get using this link: http
 
 Regarding to the apiKey is not needed to add in the code if you are planning to use this firmware with the Flipper Zero app
 
-~~Flipper Zero app (Gemini IA.js)~~ Moved to Gemini-Flipper repo
+~~Flipper Zero app (Gemini IA.js)~~ Moved to Gemini-Flipper repo (https://github.com/d4rks1d33/Gemini-Flipper)
