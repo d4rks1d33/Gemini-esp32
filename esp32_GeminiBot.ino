@@ -42,7 +42,7 @@ void loadAPIKey() {
   while (!Serial.available());
   apiKey = Serial.readStringUntil('\n');
   apiKey.trim();
-  endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + apiKey;
+  endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
   Serial.println("API key loaded successfully.");
 }
 
